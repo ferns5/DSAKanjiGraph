@@ -135,5 +135,5 @@ if __name__ == "__main__":
   #debug_check_data(entries, kanji_count)
 
   print(f"verification: Total Nodes: {graph.node_count}")
-  print(f"Example Edge: (from 明白) {graph.graph.get('明白')}")
+  print(f"Example Edge: (from 菜) {graph.graph.get('菜')}")
   graph = KanjiGraph()
