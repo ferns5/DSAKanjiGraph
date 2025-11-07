@@ -13,7 +13,7 @@ class VocabEntry:
     self.idseq = idseq
     self.text = text
     self.kanji_content = [char for char in self.text if '一' <= char <= '龯']
-    self.frequency = 0.0
+    self.log_cost = 20.0
 
 def load_data():
   print("Loading initial Kanji Dictionary Data...")
@@ -42,20 +42,61 @@ def load_data():
   print(f"Loaded {len(entries)} entries from JMDict!")
   return jam, entries
 
+def load_frequency_data(entries, filename='frequency_data.csv'):
+  print("Loading corpus data from csv...")
+  frequency_map = {}
+  minimum_frequency = 1e-8
+  MAX_COST = -math.log(minimum_frequency)
+  try:
+    with open(filename, mode='r', encoding='cp932') as f:
+      reader = csv.reader(f)
+      for row in reader:
+        if len(row) >= 2:
+          word_text = row[0].strip()
+          try:
+            norm_freq = float(row[1])
+            bounded_freq = max(norm_freq, minimum_frequency)
+            log_cost = -math.log(bounded_freq)
+            frequency_map[word_text] = log_cost
+          except (ValueError, IndexError):
+            continue
+  except FileNotFoundError:
+    print("Error: could not find frequency file 'frequency_data.csv'. A default cost will be used for all vocabulary.")
+    return
+  matched = 0
+  for entry in entries:
+    if isinstance(entry, VocabEntry):
+      if entry.kanji_content:
+        entry.log_cost = frequency_map.get(entry.text, MAX_COST)
+        if entry.log_cost < MAX_COST:
+          matched += 1
+  print("Frequency data loaded successfully!")
+
+
 if __name__ == "__main__":
   jam, entries = load_data()
-  
-  def debug_check_data(entries, kanji_count=13108):
+  load_frequency_data(entries)
+
+  kanji_count = sum(1 for entry in entries if isinstance(entry, KanjiEntry))
+  def debug_check_data(entries, kanji_count):
     print("verify kanji nodes:")
     for i in range(5):
       entry = entries[i]
       print(f"Kanji Node {i+1}: {entry.kanji}, Strokes: {entry.stroke_count}")
 
     print("verify vocab nodes:")
-    for i in range(kanji_count, kanji_count+5):
-      entry = entries[i]
-      kanji_list = ", ".join(entry.kanji_content[:3]) + "..." if len(entry.kanji_content) > 3 else ", ".join(entry.kanji_content)
-      print(f" Vocab Node {i - kanji_count + 1}: {entry.text}, ID: {entry.idseq}, Kanji Content: [{kanji_list}]")
+    checks = 0
+    for entry in entries:
+      if isinstance(entry, VocabEntry):
+        if entry.log_cost<20.0:
+          kanji_list = ", ".join(entry.kanji_content)[:3]+"..." if len(entry.kanji_content) > 3 else ", ".join(entry.kanji_content)
+          freq_status = "LOW" if entry.log_cost > 10 else "HIGH"
+          print(f" Word: {entry.text} Cost: {entry.log_cost:.4f}, Frequency Status: {freq_status}, Kanji: {kanji_list}")
+          checks+=1
+          if checks >= 20:
+            break
+    if checks == 0:
+      print("No loaded frequency found")
 
-  debug_check_data(entries)
+  debug_check_data(entries, kanji_count)
   graph = KanjiGraph()

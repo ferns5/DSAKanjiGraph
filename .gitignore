@@ -5,6 +5,7 @@ __pycache__/
 .python-version
 example.py
 debug.py
+frequency_data.csv
 
 
 
