@@ -6,6 +6,7 @@ __pycache__/
 example.py
 debug.py
 frequency_data.csv
+kanji_frequency.csv
 
 
 

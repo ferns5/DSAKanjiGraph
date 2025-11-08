@@ -25,7 +25,7 @@ class KanjiGraph:
       if node in self.nodes_data:
         node_type = self.nodes_data[node].get('type', 'unknown')
       
-        if node_type == 'kanji' or node_type == 'vocab':
+        if node_type == 'kanji' or node_type == 'vocab' or 'radical':
           formatted.append(f"[{node_type.upper()}: {node}]")
         else:
           formatted.append(node)

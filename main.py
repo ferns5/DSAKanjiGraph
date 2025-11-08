@@ -1,5 +1,6 @@
 import csv
 import math
+import random
 from jamdict import Jamdict
 from KanjiGraph import KanjiGraph
 
@@ -8,6 +9,8 @@ class KanjiEntry:
   def __init__(self, row):
     self.kanji = row['literal']
     self.stroke_count = row['stroke_count']
+    self.log_cost = 20.0
+    self.freq_rank = None
 
 class VocabEntry: 
   def __init__(self, idseq, text):
@@ -75,34 +78,84 @@ def load_frequency_data(entries, filename='frequency_data.csv'):
           matched += 1
   print("Frequency data loaded successfully!")
 
+def load_kanji_frequency(entries, filename: str = "kanji_frequency.csv"):
+  #LOADING
+  kanji_rank_map = {}
+  try:
+    with open(filename, mode='r', encoding='cp932') as f:
+      reader = csv.DictReader(f)
+      for row in reader:
+        kanji = row.get('FORM', '').strip()
+        rank_str = row.get("FREQ (1)", '').strip()
+        try:
+          rank = float(rank_str)
+          kanji_rank_map[kanji] = rank
+        except ValueError:
+          continue
+  except FileNotFoundError:
+    print(f"Kanji frequency file {filename} not found. Using default cost for kanji entries.")
+    return
+  if not kanji_rank_map:
+    print("Kanji frequency data loaded successfully but the map is empty. Cost not calculated.")
+    return
+  min_rank = min(kanji_rank_map.values())
+  matched = 0
+  for entry in entries:
+    if isinstance(entry, KanjiEntry):
+      if entry.kanji in kanji_rank_map:
+        rank = kanji_rank_map[entry.kanji]
+        cost = math.log(rank / (min_rank +1e-9)) #+1e-9 was a way to prevent division by zero.
+        entry.log_cost = max(cost, 0.1)
+        entry.freq_rank = rank
+        matched += 1
+  print(f"Loaded frequency costs for {matched} kanji entries.")
+
+  
 # Populate Graph Helper Function
-def build_graph(graph, entries):
+def build_graph(jam, graph, entries):
   print("Populating graph with loaded entries...")
   kanji_nodes = {}
 
   #Nodes
   for entry in entries:
     node_id = entry.kanji if isinstance(entry, KanjiEntry) else entry.text
-    graph.add_node(node_id, type="kanji" if isinstance(entry, KanjiEntry) else 'vocab')
+    node_data = {"type": "kanji" if isinstance(entry, KanjiEntry) else 'vocab'}
     if isinstance(entry, KanjiEntry):
       kanji_nodes[entry.kanji] = entry
+      node_data['entry_ref'] = entry
+    graph.add_node(node_id, **node_data)
   print(f"Added {graph.node_count} nodes to graph.")
 
-  #Edges
+  #lexical edges
   print("Creating edges and assigning weights by frequency...")
   MAX_COST = 18.42
+  RADICAL_COST = 25.0
   for entry in entries:
-    if isinstance(entry, VocabEntry):
+    if isinstance(entry, VocabEntry) and entry.kanji_content:
       word_node = entry.text
-      if entry.log_cost > MAX_COST:
-        continue
-      cost = entry.log_cost
+      word_cost = entry.log_cost
       for kanji_char in entry.kanji_content:
-        if kanji_char in kanji_nodes:
+        kanji_ref = graph.nodes_data.get(kanji_char, {}).get('entry_ref')
+        if kanji_ref and kanji_ref.log_cost < 20.0:
+          kanji_cost = kanji_ref.log_cost
+        else:
+          kanji_cost = word_cost
+        if kanji_char in graph.graph:
           # add word to kanji edge
-          graph.add_edge(word_node, kanji_char, cost)
+          graph.add_edge(word_node, kanji_char, kanji_cost)
           #add kanji to word edge
-          graph.add_edge(kanji_char, word_node, cost)
+          graph.add_edge(kanji_char, word_node, word_cost)
+
+  #radical/decompisition nodes:
+  for kanji in kanji_nodes.keys():
+    components = jam.krad.get(kanji, [])
+    for component in components:
+      if component not in graph.graph:
+        graph.add_node(component, type='radical')
+
+      graph.add_edge(kanji, component, RADICAL_COST)
+      graph.add_edge(component, kanji, RADICAL_COST)
+
   print(f"Edges created. Nodes used: {len(graph.graph)}")
   return graph
 
@@ -129,8 +182,9 @@ def print_result(algo, result, graph):
 if __name__ == "__main__":
   jam, entries = load_data()
   load_frequency_data(entries)
+  load_kanji_frequency(entries)
   empty_graph = KanjiGraph()
-  graph = build_graph(empty_graph, entries)
+  graph = build_graph(jam, empty_graph, entries)
   N5_KANJI_SET = {
     '一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '百', '千', '万', '円', '時', 
     '日', '月', '火', '水', '木', '金', '土', '曜', '本', '人', '今', '寺', '上', '下', '中', 
@@ -143,18 +197,43 @@ if __name__ == "__main__":
 } #this is used as a general target, as it is a set of kanji deemed to be the most basic, simple, and common in the language.
   print("---------------------------LOADING COMPLETE-----------------------------")
 
-  source = input("\nPlease enter a Japanese kanji or word to analyze (ex. 鉱業): ").strip()
-  if not source or source not in graph.graph:
-    print("Source not provided or source does not exist in the graph.")
+  #DETERMINE SOURCE
+  user = input("\nPlease enter a Japanese kanji or word to analyze (ex. 鉱業) Leave blank for a random entry: ").strip()
+  source = None
+  if not user:
+    valid_nodes = [node for node, data in graph.nodes_data.items() if data.get('type') == 'vocab' and graph.graph.get(node) and len(graph.graph.get(node)) > 0]
+    if valid_nodes:
+      source = random.choice(valid_nodes)
+      print(f"Selected random vocabulary entry: {source}")
+    else:
+      print("failed to find valid nodes for random selection. exiting")
+      exit()
+  elif user in graph.graph:
+    source = user
+  else:
+    print(f"Source provided ({user}) not found in graph / is an invalid entry. Exiting ")
     exit()
 
-  dijkstras_result = graph.dijkstras(source, N5_KANJI_SET)
+  #DETERMINE TARGET
+  user_target = input (f"\nEnter a target kanji to be reached from the source (Leave blank to search for all {len(N5_KANJI_SET)} N5 Kanji): ").strip()
+  if user_target and user_target in graph.graph:
+    target = {user_target}
+    print(f"Target Set: ({user_target})")
+  elif user_target and user_target not in graph.graph:
+    print(f"Target {user_target} not found in graph / is an invalid entry. Defaulting to N5 set.")
+    target = N5_KANJI_SET
+  else:
+    print("Target Set: N5 Kanji Set")
+    target = N5_KANJI_SET
+
+
+  dijkstras_result = graph.dijkstras(source, target)
   print_result("Dijkstra's (Minimum Cost by Frequency)", dijkstras_result, graph)
 
-  bellman_result = graph.bellman(source, N5_KANJI_SET)
+  bellman_result = graph.bellman(source, target)
   print_result("Bellman-Ford (Minimum Cost by Frequency)", dijkstras_result, graph)
 
-  bfs_result = graph.bfs(source, N5_KANJI_SET)
+  bfs_result = graph.bfs(source, target)
   print_result("BFS (Minimum Steps to Target Set)", bfs_result, graph)
 
 
