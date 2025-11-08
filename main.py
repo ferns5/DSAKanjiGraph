@@ -110,30 +110,28 @@ if __name__ == "__main__":
   load_frequency_data(entries)
   empty_graph = KanjiGraph()
   graph = build_graph(empty_graph, entries)
-
-  #kanji_count = sum(1 for entry in entries if isinstance(entry, KanjiEntry))
-  #def debug_check_data(entries, kanji_count):
-  #  print("verify kanji nodes:")
-  #  for i in range(5):
-  #    entry = entries[i]
-  #    print(f"Kanji Node {i+1}: {entry.kanji}, Strokes: {entry.stroke_count}")
-
-  #  print("verify vocab nodes:")
-  #  checks = 0
-  #  for entry in entries:
-  #    if isinstance(entry, VocabEntry):
-  #      if entry.log_cost<20.0:
-  #        kanji_list = ", ".join(entry.kanji_content)[:3]+"..." if len(entry.kanji_content) > 3 else ", ".join(entry.kanji_content)
-  #        freq_status = "LOW" if entry.log_cost > 10 else "HIGH"
-  #        print(f" Word: {entry.text} Cost: {entry.log_cost:.4f}, Frequency Status: {freq_status}, Kanji: {kanji_list}")
-  #        checks+=1
-  #        if checks >= 20:
-  #          break
-  #  if checks == 0:
-  #    print("No loaded frequency found")
-
-  #debug_check_data(entries, kanji_count)
+  N5_KANJI_SET = {
+    '一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '百', '千', '万', '円', '時', 
+    '日', '月', '火', '水', '木', '金', '土', '曜', '本', '人', '今', '寺', '上', '下', '中', 
+    '大', '小', '先', '入', '出', '山', '川', '田', '左', '右', '名', '語', '学', '生', '校', 
+    '男', '女', '子', '車', '前', '後', '午', '分', '半', '何', '食', '飲', '駅', '休', '電', 
+    '書', '聞', '読', '見', '話', '買', '行', '来', '出', '会', '口', '目', '耳', '手', '足', 
+    '力', '気', '雨', '花', '草', '虫', '犬', '魚', '貝', '林', '森', '空', '立', '座', '言', 
+    '道', '会', '母', '父', '友', '白', '赤', '青', '色', '好', '新', '古', '長', '多', '少',
+    '早', '広', '高', '安', '安', '外', '国', '京', '都', '社', '店' 
+} #this is used as a general target, as it is a set of kanji deemed to be the most basic, simple, and common in the language.
 
   print(f"verification: Total Nodes: {graph.node_count}")
-  print(f"Example Edge: (from 菜) {graph.graph.get('菜')}")
-  graph = KanjiGraph()
+#  print(f"Example Edge: (from 菜) {graph.graph.get('菜')}")
+  source = "鉱業"
+  print(f"PERFORMING DIJKSTRA'S ON SOURCE '{source}' TO N5 KANJI SET")
+  dijkstras_result = graph.dijkstras(source, N5_KANJI_SET)
+  if dijkstras_result:
+    path, cost = dijkstras_result
+    print("found shortest path. printing in sequence:")
+    print("- ".join(path))
+  else:
+    print("Could not find path from source to N5 Kanji Set (path does not exist or source entry could not be found?)")
+
+
+
