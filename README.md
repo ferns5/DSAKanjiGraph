@@ -11,6 +11,7 @@ A tool for visualizing paths between kanji and vocabulary entries in the Japanes
 
 ## Install:
 run `pip install -r requirements.txt` in a python virtual environment
+download 'frequency_data.csv' and 'kanji_frequency.csv' from the releases page and place them into the source folder.
 application is run from main.py: `python main.py`
 
 ### Required:
