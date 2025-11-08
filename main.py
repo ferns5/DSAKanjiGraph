@@ -1,5 +1,6 @@
 import csv
 import math
+import os # used to clear the console!
 import random
 from jamdict import Jamdict
 from KanjiGraph import KanjiGraph
@@ -179,6 +180,12 @@ def print_result(algo, result, graph):
   else:
     print("Path not found! (Source node not found in the graph or is unreachable?)")
 
+def clear_console(): #helper for keeping terminal clean
+  if os.name == "nt":
+    os.system('cls')
+  else:
+    os.system('clear')
+
 if __name__ == "__main__":
   jam, entries = load_data()
   load_frequency_data(entries)
@@ -196,45 +203,73 @@ if __name__ == "__main__":
     '早', '広', '高', '安', '安', '外', '国', '京', '都', '社', '店' 
 } #this is used as a general target, as it is a set of kanji deemed to be the most basic, simple, and common in the language.
   print("---------------------------LOADING COMPLETE-----------------------------")
+  #new loop structure
+  print(f"\n Graph ready. Total nodes: {graph.node_count}")
+  print("\n")
 
-  #DETERMINE SOURCE
-  user = input("\nPlease enter a Japanese kanji or word to analyze (ex. 鉱業) Leave blank for a random entry: ").strip()
-  source = None
-  if not user:
-    valid_nodes = [node for node, data in graph.nodes_data.items() if data.get('type') == 'vocab' and graph.graph.get(node) and len(graph.graph.get(node)) > 0]
-    if valid_nodes:
+  valid_nodes = [node for node, data in graph.nodes_data.items() if data.get('type') == 'vocab' and graph.graph.get(node) and len(graph.graph.get(node)) > 0] #handle random entry selection
+  while True:
+    print("Type 'help' or 'h' for commands, 'quit' or 'q' to quit.")
+    user_input = input("\nEnter command or source word/kanji ('s' to search, or 'sr' for random):  ").strip().lower()
+    parts = user_input.split(maxsplit=1)
+    command = parts[0] if parts else ""
+    args = parts[1] if len(parts) > 1 else ""
+    source = None
+    if command in ('quit', 'q'):
+      print("Exiting.")
+      break
+    elif command in ('help', 'h'):
+      print("\nCommands:")
+      print("\th, help\t:\tLists valid commands.")
+      print("\tc, clear\t:\tClears the console window.")
+      print("\ts, search [Entry]\t:\tStart a new pathfinding query with a designated entry.")
+      print("\tsr, searchrandom\t:\tStart a new pathfinding query with a random source.")
+      print("\tq, quit\t:\tExit the program.")
+      continue
+    elif command in ('clear', 'c'):
+      clear_console()
+      continue
+    elif command in ('search', 's'):
+      if args:
+        source = args
+      else:
+        print("No source kanji provided. Usage: search [entry]")
+        continue
+    elif command in ('sr', 'searchrandom'):
       source = random.choice(valid_nodes)
-      print(f"Selected random vocabulary entry: {source}")
     else:
-      print("failed to find valid nodes for random selection. exiting")
-      exit()
-  elif user in graph.graph:
-    source = user
-  else:
-    print(f"Source provided ({user}) not found in graph / is an invalid entry. Exiting ")
-    exit()
+      print("Please enter a valid command. Use 'help' for a list of available commands.")
+      continue
+
+    #validity check:
+    if source not in graph.graph or not graph.graph.get(source):
+      print(f"Error: source {source} could not be located in the graph, or has no outgoing edges.")
+      continue
 
   #DETERMINE TARGET
-  user_target = input (f"\nEnter a target kanji to be reached from the source (Leave blank to search for all {len(N5_KANJI_SET)} N5 Kanji): ").strip()
-  if user_target and user_target in graph.graph:
-    target = {user_target}
-    print(f"Target Set: ({user_target})")
-  elif user_target and user_target not in graph.graph:
-    print(f"Target {user_target} not found in graph / is an invalid entry. Defaulting to N5 set.")
-    target = N5_KANJI_SET
-  else:
-    print("Target Set: N5 Kanji Set")
-    target = N5_KANJI_SET
+    user_target = input (f"\nEnter a target kanji to be reached from the source (Leave blank to search for all {len(N5_KANJI_SET)} N5 Kanji): ").strip()
+    if user_target and user_target in graph.graph:
+      target = {user_target}
+      clear_console()
+      print(f"Target Set: ({user_target})")
+    elif user_target and user_target not in graph.graph:
+      clear_console()
+      print(f"Target {user_target} not found in graph / is an invalid entry. Defaulting to N5 set.")
+      target = N5_KANJI_SET
+    else:
+      clear_console()
+      print("Target Set: N5 Kanji Set")
+      target = N5_KANJI_SET
+    print(f"Source: {source}")
 
+    dijkstras_result = graph.dijkstras(source, target)
+    print_result("Dijkstra's (Minimum Cost by Frequency)", dijkstras_result, graph)
 
-  dijkstras_result = graph.dijkstras(source, target)
-  print_result("Dijkstra's (Minimum Cost by Frequency)", dijkstras_result, graph)
+    bellman_result = graph.bellman(source, target)
+    print_result("Bellman-Ford (Minimum Cost by Frequency)", dijkstras_result, graph)
 
-  bellman_result = graph.bellman(source, target)
-  print_result("Bellman-Ford (Minimum Cost by Frequency)", dijkstras_result, graph)
-
-  bfs_result = graph.bfs(source, target)
-  print_result("BFS (Minimum Steps to Target Set)", bfs_result, graph)
+    bfs_result = graph.bfs(source, target)
+    print_result("BFS (Minimum Steps to Target Set)", bfs_result, graph)
 
 
 
