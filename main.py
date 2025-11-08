@@ -124,6 +124,7 @@ if __name__ == "__main__":
   print(f"verification: Total Nodes: {graph.node_count}")
 #  print(f"Example Edge: (from 菜) {graph.graph.get('菜')}")
   source = "鉱業"
+
   print(f"PERFORMING DIJKSTRA'S ON SOURCE '{source}' TO N5 KANJI SET")
   dijkstras_result = graph.dijkstras(source, N5_KANJI_SET)
   if dijkstras_result:
@@ -133,6 +134,7 @@ if __name__ == "__main__":
     print(f"Total Cost: {cost}")
   else:
     print("Could not find path from source to N5 Kanji Set (path does not exist or source entry could not be found?)")
+
   print(f"PERFORMING BELLMAN-FORD ON SOURCE '{source}' TO N5 KANJI SET")
   bellman_result = graph.bellman(source, N5_KANJI_SET)
   if bellman_result:
@@ -142,6 +144,17 @@ if __name__ == "__main__":
     print(f"Total Cost: {cost}")
   else:
     print("Could not find path from source to N5 Kanji Set (path does not exist or source entry could not be found?)")
+
+  print(f"PERFORMING BFS ON SOURCE '{source}' TO N5 KANJI SET")
+  bfs_result = graph.bfs(source, N5_KANJI_SET)
+  if bfs_result:
+    path, steps, cost = bfs_result
+    print("found shortest steps path. printing in sequence:")
+    print("- ".join(path))
+    print(f"Total Cost: {cost} Total Steps: {steps}")
+  else:
+    print("Could not find path from source to N5 Kanji Set (path does not exist or source entry could not be found?)")
+
 
 
 

@@ -1,5 +1,6 @@
 import heapq #just a min heap implementation used for dijkstra's! the logic is still my own.
 from typing import Dict, List, Optional, Tuple, Set # for dijkstras (made it easier to return None)
+from collections import deque
 class KanjiGraph:
   #grpah building
   def __init__(self):
@@ -18,6 +19,36 @@ class KanjiGraph:
       self.graph[source][target] = weight
 
   #PATHFINDING
+  def bfs(self, src, target_set: Set[str]) -> Optional[Tuple[List[str], int, float]]:
+    if src not in self.graph:
+      return None
+    queue = deque([(src, [src])]) # the node and the path
+    seen = {src}
+    
+    while queue:
+      node, path = queue.popleft()
+      if node in target_set:
+        weight = 0.0
+        steps = len(path) - 1
+        for i in range(steps):
+          n1 = path[i]
+          n2 = path[i+1]
+          w = self.graph[n1][n2]
+          weight += w
+
+        return path, steps, weight
+
+      for adj in self.graph[node]:
+        if adj not in seen:
+          seen.add(adj)
+          new_path = path + [adj]
+          queue.append((adj, new_path))
+    
+    return None #we couldnt reach the target set.
+
+
+
+
   def dijkstras(self, src, target_set: Set[str]) -> Optional[Tuple[List[str], float]]:
     if src not in self.graph:
       return None
