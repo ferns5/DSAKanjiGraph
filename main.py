@@ -18,6 +18,7 @@ class VocabEntry:
 
 # Data Loading Helper Functions
 def load_data():
+  print("-------------------LOADING DATA FOR GRAPH ANALYSIS---------------------")
   print("Loading initial Kanji Dictionary Data...")
   jam = Jamdict()
   entries = []
@@ -105,6 +106,26 @@ def build_graph(graph, entries):
   print(f"Edges created. Nodes used: {len(graph.graph)}")
   return graph
 
+#helper function for printing formatted paths
+def print_result(algo, result, graph):
+  print('\n')
+  print("-" * 60)
+  print(f"RESULT FROM {algo}:")
+  print("-" * 60)
+  if result:
+    if len(result) == 3: #bfs
+      path, steps, cost = result
+      cost_label = f"(Steps: {steps}, Total Weight: {cost:.4f})"
+    else:
+      path, cost = result
+      cost_label = f"Total Weight: {cost:.4f}"
+    formatted = graph.format_path(path)
+    print(f"Path Located: {cost_label}\n")
+    print("Sequence:")
+    print(" --> ".join(formatted))
+  else:
+    print("Path not found! (Source node not found in the graph or is unreachable?)")
+
 if __name__ == "__main__":
   jam, entries = load_data()
   load_frequency_data(entries)
@@ -120,42 +141,21 @@ if __name__ == "__main__":
     '道', '会', '母', '父', '友', '白', '赤', '青', '色', '好', '新', '古', '長', '多', '少',
     '早', '広', '高', '安', '安', '外', '国', '京', '都', '社', '店' 
 } #this is used as a general target, as it is a set of kanji deemed to be the most basic, simple, and common in the language.
+  print("---------------------------LOADING COMPLETE-----------------------------")
 
-  print(f"verification: Total Nodes: {graph.node_count}")
-#  print(f"Example Edge: (from 菜) {graph.graph.get('菜')}")
-  source = "鉱業"
+  source = input("\nPlease enter a Japanese kanji or word to analyze (ex. 鉱業): ").strip()
+  if not source or source not in graph.graph:
+    print("Source not provided or source does not exist in the graph.")
+    exit()
 
-  print(f"PERFORMING DIJKSTRA'S ON SOURCE '{source}' TO N5 KANJI SET")
   dijkstras_result = graph.dijkstras(source, N5_KANJI_SET)
-  if dijkstras_result:
-    path, cost = dijkstras_result
-    print("found shortest path. printing in sequence:")
-    print("- ".join(path))
-    print(f"Total Cost: {cost}")
-  else:
-    print("Could not find path from source to N5 Kanji Set (path does not exist or source entry could not be found?)")
+  print_result("Dijkstra's (Minimum Cost by Frequency)", dijkstras_result, graph)
 
-  print(f"PERFORMING BELLMAN-FORD ON SOURCE '{source}' TO N5 KANJI SET")
   bellman_result = graph.bellman(source, N5_KANJI_SET)
-  if bellman_result:
-    path, cost = bellman_result
-    print("found shortest path. printing in sequence:")
-    print("- ".join(path))
-    print(f"Total Cost: {cost}")
-  else:
-    print("Could not find path from source to N5 Kanji Set (path does not exist or source entry could not be found?)")
+  print_result("Bellman-Ford (Minimum Cost by Frequency)", dijkstras_result, graph)
 
-  print(f"PERFORMING BFS ON SOURCE '{source}' TO N5 KANJI SET")
   bfs_result = graph.bfs(source, N5_KANJI_SET)
-  if bfs_result:
-    path, steps, cost = bfs_result
-    print("found shortest steps path. printing in sequence:")
-    print("- ".join(path))
-    print(f"Total Cost: {cost} Total Steps: {steps}")
-  else:
-    print("Could not find path from source to N5 Kanji Set (path does not exist or source entry could not be found?)")
-
-
+  print_result("BFS (Minimum Steps to Target Set)", bfs_result, graph)
 
 
 

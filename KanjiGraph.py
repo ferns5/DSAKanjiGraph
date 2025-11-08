@@ -18,6 +18,21 @@ class KanjiGraph:
     if source in self.graph and target in self.graph:
       self.graph[source][target] = weight
 
+  #path formatting helper function
+  def format_path(self, path: List[str]):
+    formatted = []
+    for node in path:
+      if node in self.nodes_data:
+        node_type = self.nodes_data[node].get('type', 'unknown')
+      
+        if node_type == 'kanji' or node_type == 'vocab':
+          formatted.append(f"[{node_type.upper()}: {node}]")
+        else:
+          formatted.append(node)
+      else:
+        formatted.append(node)
+    return formatted
+
   #PATHFINDING
   def bfs(self, src, target_set: Set[str]) -> Optional[Tuple[List[str], int, float]]:
     if src not in self.graph:
