@@ -10,9 +10,9 @@ A tool for visualizing paths between kanji and vocabulary entries in the Japanes
 - Shows a comparison of the lexical routes found by these algorithms. Dijkstra's/Bellman-Ford will return a least-cost path representing the highest frequency/priority entries on the path to the target, which can be modelled as a 'learning path' to the analyzed word. BFS produces a fewest step route to the target, which can provide interesting entries or steps.
 
 ## Install:
-run `pip install -r requirements.txt` in a python virtual environment
-download 'frequency_data.csv' and 'kanji_frequency.csv' from the releases page and place them into the source folder.
-application is run from main.py: `python main.py`
+- Run `pip install -r requirements.txt` in a python virtual environment
+- Download 'frequency_data.csv' and 'kanji_frequency.csv' from the releases page and place them into the source folder.
+- Application is run from main.py: `python main.py`
 
 ### Required:
 Python 3.10 or higher (not 3.13)
