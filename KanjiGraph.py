@@ -18,7 +18,7 @@ class KanjiGraph:
       self.graph[source][target] = weight
 
   #PATHFINDING
-  def dijkstras(self, src, target_set: set[str]) -> Optional[Tuple[List[str], float]]:
+  def dijkstras(self, src, target_set: Set[str]) -> Optional[Tuple[List[str], float]]:
     if src not in self.graph:
       return None
     
@@ -55,3 +55,42 @@ class KanjiGraph:
     final_path.reverse()
     return final_path, min_target
 
+  def bellman(self, src, target_set: Set[str]) -> Optional[Tuple[List[str], float]]:
+    if src not in self.graph:
+      return None
+    shortest = {node: float('inf') for node in self.graph}
+    shortest[src] = 0.0
+    pred_map: Dict[str, Optional[str]] = {node: None for node in self.graph}
+    v = len(self.graph)
+
+    #relaxtion iterations
+    for i in range(v-1):
+      updated = False
+      for n1 in self.graph:
+        for n2, weight in self.graph[n1].items():
+          if shortest[n1] != float('inf') and shortest[n1] + weight < shortest[n2]:
+            shortest[n2] = shortest[n1] + weight
+            pred_map[n2] = n1
+            updated = True
+      if not updated:
+        break
+
+    #pathfind
+    min_target = float('inf')
+    final_node = None
+    for node in target_set:
+      if shortest.get(node, float('inf')) < min_target:
+        min_target = shortest[node]
+        final_node = node
+
+    if final_node is None or min_target == float('inf'):
+      return None
+    final_path = []
+    cur = final_node
+    while cur is not None:
+      final_path.append(cur)
+      cur = pred_map[cur]
+    final_path.reverse()
+    return final_path, min_target
+
+    

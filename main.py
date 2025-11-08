@@ -130,8 +130,19 @@ if __name__ == "__main__":
     path, cost = dijkstras_result
     print("found shortest path. printing in sequence:")
     print("- ".join(path))
+    print(f"Total Cost: {cost}")
   else:
     print("Could not find path from source to N5 Kanji Set (path does not exist or source entry could not be found?)")
+  print(f"PERFORMING BELLMAN-FORD ON SOURCE '{source}' TO N5 KANJI SET")
+  bellman_result = graph.bellman(source, N5_KANJI_SET)
+  if bellman_result:
+    path, cost = bellman_result
+    print("found shortest path. printing in sequence:")
+    print("- ".join(path))
+    print(f"Total Cost: {cost}")
+  else:
+    print("Could not find path from source to N5 Kanji Set (path does not exist or source entry could not be found?)")
+
 
 
 
