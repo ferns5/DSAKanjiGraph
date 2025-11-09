@@ -1,6 +1,7 @@
 import csv
 import math
 import os # used to clear the console!
+import time
 import random
 from jamdict import Jamdict
 from KanjiGraph import KanjiGraph
@@ -161,11 +162,12 @@ def build_graph(jam, graph, entries):
   return graph
 
 #helper function for printing formatted paths
-def print_result(algo, result, graph):
+def print_result(algo, result, graph, runtime):
   print('\n')
   print("-" * 60)
   print(f"RESULT FROM {algo}:")
   print("-" * 60)
+  print(f"Runtime: {runtime:.5f} seconds")
   if result:
     if len(result) == 3: #bfs
       path, steps, cost = result
@@ -186,6 +188,16 @@ def clear_console(): #helper for keeping terminal clean
   else:
     os.system('clear')
 
+def lookup(jam, entry): #helper to do a dictionary lokup for the user
+  result = jam.lookup(entry)
+  print("\n------ Dictionary Entries: ------\n")
+  for entry in result.entries:
+    print(entry)
+  print("\n------- Kanji Entries: ------\n")
+  for c in result.chars:
+    print(repr(c))
+  print("\n" + "-" * 60)
+
 if __name__ == "__main__":
   jam, entries = load_data()
   load_frequency_data(entries)
@@ -204,12 +216,12 @@ if __name__ == "__main__":
 } #this is used as a general target, as it is a set of kanji deemed to be the most basic, simple, and common in the language.
   print("---------------------------LOADING COMPLETE-----------------------------")
   #new loop structure
-  print(f"\n Graph ready. Total nodes: {graph.node_count}")
+  print(f"\nGraph ready. Total nodes: {graph.node_count}")
   print("\n")
 
   valid_nodes = [node for node, data in graph.nodes_data.items() if data.get('type') == 'vocab' and graph.graph.get(node) and len(graph.graph.get(node)) > 0] #handle random entry selection
   while True:
-    print("Type 'help' or 'h' for commands, 'quit' or 'q' to quit.")
+    print("\nType 'help' or 'h' for commands, 'quit' or 'q' to quit.")
     user_input = input("\nEnter command or source word/kanji ('s' to search, or 'sr' for random):  ").strip().lower()
     parts = user_input.split(maxsplit=1)
     command = parts[0] if parts else ""
@@ -223,11 +235,21 @@ if __name__ == "__main__":
       print("\th, help\t:\tLists valid commands.")
       print("\tc, clear\t:\tClears the console window.")
       print("\ts, search [Entry]\t:\tStart a new pathfinding query with a designated entry.")
+      print("\tl, lookup [Entry]\t:\tPerforms a lookup in the JMDict table for the provided entry.")
       print("\tsr, searchrandom\t:\tStart a new pathfinding query with a random source.")
       print("\tq, quit\t:\tExit the program.")
       continue
     elif command in ('clear', 'c'):
       clear_console()
+      continue
+    elif command in ('lookup', 'l'):
+      if args:
+        entry = args
+        clear_console()
+        print(f"DICTIONARY SEARCH: {entry}")
+        lookup(jam, entry)
+      else:
+        print("No entry provided. Usage: lookup [entry]")
       continue
     elif command in ('search', 's'):
       if args:
@@ -247,8 +269,12 @@ if __name__ == "__main__":
       continue
 
   #DETERMINE TARGET
-    user_target = input (f"\nEnter a target kanji to be reached from the source (Leave blank to search for all {len(N5_KANJI_SET)} N5 Kanji): ").strip()
-    if user_target and user_target in graph.graph:
+    user_target = input (f"\nEnter a target kanji to be reached from the source. \nOr, type 'random' to generate a random valid target set (May result in long paths or impossible paths more frequently.) \nLeave blank to search for all {len(N5_KANJI_SET)} N5 Kanji: ").strip()
+    if user_target and user_target == "random":
+      target = random.choice(valid_nodes)
+      clear_console()
+      print(f"Target Set: ({target})")
+    elif user_target and user_target in graph.graph:
       target = {user_target}
       clear_console()
       print(f"Target Set: ({user_target})")
@@ -262,14 +288,20 @@ if __name__ == "__main__":
       target = N5_KANJI_SET
     print(f"Source: {source}")
 
+    start_time = time.perf_counter()
     dijkstras_result = graph.dijkstras(source, target)
-    print_result("Dijkstra's (Minimum Cost by Frequency)", dijkstras_result, graph)
+    runtime = time.perf_counter() - start_time
+    print_result("Dijkstra's (Minimum Cost by Frequency)", dijkstras_result, graph, runtime)
 
+    start_time = time.perf_counter()
     bellman_result = graph.bellman(source, target)
-    print_result("Bellman-Ford (Minimum Cost by Frequency)", dijkstras_result, graph)
+    runtime = time.perf_counter() - start_time
+    print_result("Bellman-Ford (Minimum Cost by Frequency)", dijkstras_result, graph, runtime)
 
+    start_time = time.perf_counter()
     bfs_result = graph.bfs(source, target)
-    print_result("BFS (Minimum Steps to Target Set)", bfs_result, graph)
+    runtime = time.perf_counter() - start_time
+    print_result("BFS (Minimum Steps to Target Set)", bfs_result, graph, runtime)
 
 
 
