@@ -16,5 +16,5 @@ A tool for visualizing paths between kanji and vocabulary entries in the Japanes
 - Application is run from main.py: `python main.py`
 
 ### Required:
-Python 3.10 or higher (not 3.13)
+Python 3.12 works on my machine (not 3.13) but in theory 3.10 or higher. 
 
